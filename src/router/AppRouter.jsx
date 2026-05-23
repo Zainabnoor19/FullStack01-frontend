@@ -4,7 +4,10 @@ import Signup from '../Pages/Signup'
 import About from '../Pages/About'
 import Login from '../Pages/Login'
 import Home from '../Pages/Home'
-import Users from '../Pages/Users'  // Add this import
+import Users from '../Pages/Users'
+import Analytics from '../Pages/Analytics'
+import MyProfile from '../Pages/MyProfile'
+import MyActivity from '../Pages/MyActivity'  // ✅ Add this
 import DashboardLayout from '../components/DashboardLayout'
 
 const AppRouter = () => {
@@ -13,7 +16,10 @@ const AppRouter = () => {
       <Routes>
         <Route path='/' element={<DashboardLayout><Home/></DashboardLayout>}/>
         <Route path='/about' element={<DashboardLayout><About/></DashboardLayout>}/>
-        <Route path='/users' element={<DashboardLayout><Users/></DashboardLayout>}/>  {/* Add this line */}
+        <Route path='/users' element={<DashboardLayout><Users/></DashboardLayout>}/>
+        <Route path='/analytics' element={<DashboardLayout><Analytics/></DashboardLayout>}/>
+        <Route path='/my-profile' element={<DashboardLayout><MyProfile/></DashboardLayout>}/>
+        <Route path='/my-activity' element={<DashboardLayout><MyActivity/></DashboardLayout>}/>  {/* ✅ Add this */}
         <Route path='/login' element={<Login/>}/>
         <Route path='/register' element={<Signup/>}/>
       </Routes>

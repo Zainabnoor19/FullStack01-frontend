@@ -6,24 +6,22 @@ export default function Sidebar() {
   const { loader, user } = useAuthContext();
 
   const adminItems = [
-    { name: 'Dashboard', icon: '🏠', path: '/' },
-    { name: 'About', icon: '📊', path: '/about' },
-    { name: 'Analytics', icon: '📈', path: '/' },
-    { name: 'All Users', icon: '👥', path: '/users' },
-    { name: 'Settings', icon: '⚙️', path: '/' },
-  ];
+  { name: 'Dashboard', icon: '🏠', path: '/', enabled: true },
+  { name: 'About', icon: '📊', path: '/about', enabled: true },
+  { name: 'Analytics', icon: '📈', path: '/analytics', enabled: true },
+  { name: 'All Users', icon: '👥', path: '/users', enabled: true },
+];
 
-  const userItems = [
-    { name: 'Dashboard', icon: '🏠', path: '/' },
-    { name: 'My Profile', icon: '👤', path: '/' },
-    { name: 'My Activity', icon: '📝', path: '/' },
-    { name: 'Settings', icon: '⚙️', path: '/' },
-  ];
-
-  const guestItems = [
-     { name: 'Home', icon: '🏠', path: '/' },
-    { name: 'About', icon: 'ℹ️', path: '/about' },
-  ];
+const userItems = [
+  { name: 'Dashboard', icon: '🏠', path: '/', enabled: true },
+  { name: 'About', icon: '📊', path: '/about', enabled: true },
+  { name: 'My Profile', icon: '👤', path: '/my-profile', enabled: true },  
+  { name: 'My Activity', icon: '📝', path: '/my-activity', enabled: true },  
+];
+const guestItems = [
+  { name: 'Home', icon: '🏠', path: '/', enabled: true },
+  { name: 'About', icon: 'ℹ️', path: '/about', enabled: true },
+];
 
   // Decide which menu items to show based on role
   let displayMenuItems = [];
