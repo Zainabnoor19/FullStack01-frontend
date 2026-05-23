@@ -20,7 +20,7 @@ const Signup = () => {
   e.preventDefault();
   console.log('Form Data Submitted:', formData);
   try {
-    const response = await api.post('api/v1/auth/user', formData);
+    const response = await api.post('/api/v1/auth/user', formData);
     if (response.data.user) {
       navigate('/login');  // CHANGE YAHAN: '/' se '/login' karo
     }
