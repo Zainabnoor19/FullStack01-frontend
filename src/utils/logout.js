@@ -3,7 +3,7 @@ import api from '../config/service';
 const logoutUser = async (navigate, setUser) => {
   try {
     // 1. Backend logout API call (clears HTTP cookie)
-    await api.get('/api/v1/auth/logout');
+    await api.get('api/v1/auth/logout');
     
     // 2. Remove from localStorage
     localStorage.removeItem('user');
