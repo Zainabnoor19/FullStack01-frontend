@@ -18,7 +18,7 @@ export const AuthContext = ({children}) => {
       console.log(user);
   } catch (error) {
     console.log('error in fetching user--->');
-    setUser(null)
+    // setUser(null)
     
   }finally{
     setLoader(false)
