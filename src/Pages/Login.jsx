@@ -23,7 +23,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await api.post('api/v1/auth/login', formData);
+      const response = await api.post('/api/v1/auth/login', formData);
       if (response.data.status) {
         // Save to localStorage
         localStorage.setItem('user', JSON.stringify(response.data.user));
