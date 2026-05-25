@@ -28,31 +28,35 @@ const Analytics = () => {
       setLoading(true);
       setError(null);
       
-      // ✅ Pehle localStorage se check karo
-      const cachedUsers = localStorage.getItem('users');
+      // ✅ Check cached users first
+      const cachedUsers = localStorage.getItem('usersList');
       if (cachedUsers) {
         const users = JSON.parse(cachedUsers);
         updateStats(users);
       }
       
-      // ✅ Phir backend se fetch karo
-      const response = await api.get('api/v1/auth/getuser');
+      // ✅ Fix: Remove extra 'api/' - use correct endpoint
+      const response = await api.get('/api/v1/auth/getuser');
+      console.log('Analytics API response:', response.data);
       
-      if (response.data.status) {
+      if (response.data.status && response.data.data) {
         const users = response.data.data;
-        // Cache users in localStorage
-        localStorage.setItem('users', JSON.stringify(users));
+        // Cache users
+        localStorage.setItem('usersList', JSON.stringify(users));
         updateStats(users);
+        setError(null);
+      } else {
+        setError('No users data available');
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
       
-      // ✅ Agar backend fail ho to localStorage se dikhao
-      const cachedUsers = localStorage.getItem('users');
+      // ✅ Use cached data if backend fails
+      const cachedUsers = localStorage.getItem('usersList');
       if (cachedUsers) {
         const users = JSON.parse(cachedUsers);
         updateStats(users);
-        setError('Using cached data (Backend not available)');
+        setError('Using cached data (Backend not responding)');
       } else {
         setError('Network error. Please try again.');
       }
@@ -62,6 +66,16 @@ const Analytics = () => {
   };
 
   const updateStats = (users) => {
+    if (!users || !Array.isArray(users)) {
+      setStats({
+        totalUsers: 0,
+        totalAdmins: 0,
+        recentUsers: [],
+        userGrowth: []
+      });
+      return;
+    }
+    
     const admins = users.filter(u => u.role === 'admin');
     const recentUsers = [...users].sort((a, b) => 
       new Date(b.createdAt) - new Date(a.createdAt)
@@ -83,6 +97,7 @@ const Analytics = () => {
       date.setHours(0, 0, 0, 0);
       
       const count = users.filter(u => {
+        if (!u.createdAt) return false;
         const userDate = new Date(u.createdAt);
         userDate.setHours(0, 0, 0, 0);
         return userDate.getTime() === date.getTime();
@@ -159,7 +174,7 @@ const Analytics = () => {
               <span className="text-2xl">📅</span>
             </div>
             <span className="text-2xl font-bold text-gray-800">
-              {stats.recentUsers.length}
+              {stats.userGrowth.reduce((sum, day) => sum + day.count, 0)}
             </span>
           </div>
           <h3 className="text-gray-600 font-medium">New Users (7d)</h3>
@@ -225,7 +240,7 @@ const Analytics = () => {
                         <p className="text-sm font-medium text-gray-900">{userData.name}</p>
                       </div>
                     </div>
-                  </td>
+                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{userData.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${
@@ -237,14 +252,14 @@ const Analytics = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(userData.createdAt).toLocaleDateString()}
+                    {userData.createdAt ? new Date(userData.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        {stats.recentUsers.length === 0 && (
+        {stats.recentUsers.length === 0 && !loading && (
           <div className="text-center py-12">
             <p className="text-gray-500">No users found. Login as admin first.</p>
           </div>

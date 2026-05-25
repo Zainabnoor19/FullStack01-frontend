@@ -14,15 +14,29 @@ const Users = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('api/v1/auth/getuser');
-      if (response.data.status) {
+      setLoading(true);
+      // ✅ Fix: Remove extra 'api/' - use correct endpoint
+      const response = await api.get('/api/v1/auth/getuser');
+      console.log('Users API response:', response.data);
+      
+      if (response.data.status && response.data.data) {
         setUsers(response.data.data);
+        // ✅ Cache users for other components
+        localStorage.setItem('usersList', JSON.stringify(response.data.data));
+        setError('');
       } else {
-        setError(response.data.message);
+        setError(response.data.message || 'No users found');
       }
     } catch (error) {
+      console.error('Error fetching users:', error);
       setError('Failed to fetch users');
-      console.log(error);
+      
+      // ✅ Try to load from cache
+      const cachedUsers = localStorage.getItem('usersList');
+      if (cachedUsers) {
+        setUsers(JSON.parse(cachedUsers));
+        setError('Using cached data (Backend not responding)');
+      }
     } finally {
       setLoading(false);
     }
@@ -31,9 +45,12 @@ const Users = () => {
   const deleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        const response = await api.delete(`api/v1/auth/user/${userId}`);
+        const response = await api.delete(`/api/v1/auth/user/${userId}`);
         if (response.data.status) {
           setUsers(users.filter(u => u._id !== userId));
+          // ✅ Update cache
+          const updatedUsers = users.filter(u => u._id !== userId);
+          localStorage.setItem('usersList', JSON.stringify(updatedUsers));
           alert('User deleted successfully');
         }
       } catch (error) {
@@ -62,8 +79,8 @@ const Users = () => {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          {error}
+        <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
+          ⚠️ {error}
         </div>
       )}
 
@@ -123,7 +140,7 @@ const Users = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(userData.createdAt).toLocaleDateString()}
+                    {userData.createdAt ? new Date(userData.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {userData._id !== user?._id && (
@@ -144,7 +161,7 @@ const Users = () => {
           </table>
         </div>
 
-        {users.length === 0 && (
+        {users.length === 0 && !loading && (
           <div className="text-center py-12">
             <p className="text-gray-500">No users found</p>
           </div>
