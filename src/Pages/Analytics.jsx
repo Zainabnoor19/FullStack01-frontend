@@ -23,19 +23,19 @@ const Analytics = () => {
     fetchAnalytics();
   }, [user]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (retryCount = 0) => {
     try {
       setLoading(true);
       setError(null);
       
-      // ✅ Check cached users first
+      // ✅ First check if we have cached users
       const cachedUsers = localStorage.getItem('usersList');
-      if (cachedUsers) {
+      if (cachedUsers && retryCount === 0) {
         const users = JSON.parse(cachedUsers);
         updateStats(users);
       }
       
-      // ✅ Fix: Remove extra 'api/' - use correct endpoint
+      // ✅ Get fresh data from backend with correct endpoint
       const response = await api.get('/api/v1/auth/getuser');
       console.log('Analytics API response:', response.data);
       
@@ -45,24 +45,48 @@ const Analytics = () => {
         localStorage.setItem('usersList', JSON.stringify(users));
         updateStats(users);
         setError(null);
+      } else if (response.data.message === 'jwt malformed') {
+        // If token is malformed, try to refresh user data first
+        console.log('JWT malformed, refreshing user data...');
+        await refreshUserData();
+        
+        // Retry once after refreshing user
+        if (retryCount === 0) {
+          setTimeout(() => fetchAnalytics(1), 500);
+        } else {
+          setError('Authentication issue. Please logout and login again.');
+        }
       } else {
-        setError('No users data available');
+        setError(response.data.message || 'No users data available');
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
       
-      // ✅ Use cached data if backend fails
+      // Use cached data if available
       const cachedUsers = localStorage.getItem('usersList');
       if (cachedUsers) {
         const users = JSON.parse(cachedUsers);
         updateStats(users);
-        setError('Using cached data (Backend not responding)');
+        setError('Using cached data (Unable to fetch fresh data)');
       } else {
-        setError('Network error. Please try again.');
+        setError('Failed to load analytics. Please try again.');
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  const refreshUserData = async () => {
+    try {
+      const response = await api.get('/api/v1/auth/user-profile');
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        return true;
+      }
+    } catch (err) {
+      console.log('Failed to refresh user data:', err);
+    }
+    return false;
   };
 
   const updateStats = (users) => {
@@ -240,7 +264,7 @@ const Analytics = () => {
                         <p className="text-sm font-medium text-gray-900">{userData.name}</p>
                       </div>
                     </div>
-                   </td>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{userData.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${
@@ -261,7 +285,9 @@ const Analytics = () => {
         </div>
         {stats.recentUsers.length === 0 && !loading && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No users found. Login as admin first.</p>
+            <div className="text-5xl mb-3">📊</div>
+            <p className="text-gray-500">No users data available</p>
+            <p className="text-sm text-gray-400 mt-1">Try logging out and logging in again</p>
           </div>
         )}
       </div>

@@ -3,7 +3,7 @@ import api from '../config/service';
 import { useAuthContext } from '../context/AuthContext';
 
 const Users = () => {
-  const { user } = useAuthContext();
+  const { user, setUser } = useAuthContext();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -12,30 +12,57 @@ const Users = () => {
     fetchUsers();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (retryCount = 0) => {
     try {
       setLoading(true);
-      // ✅ Fix: Remove extra 'api/' - use correct endpoint
+      setError('');
+      
+      // ✅ Try to load from cache first
+      const cachedUsers = localStorage.getItem('usersList');
+      if (cachedUsers && retryCount === 0) {
+        setUsers(JSON.parse(cachedUsers));
+      }
+      
       const response = await api.get('/api/v1/auth/getuser');
       console.log('Users API response:', response.data);
       
       if (response.data.status && response.data.data) {
         setUsers(response.data.data);
-        // ✅ Cache users for other components
         localStorage.setItem('usersList', JSON.stringify(response.data.data));
         setError('');
+      } else if (response.data.message === 'jwt malformed') {
+        console.log('JWT malformed, refreshing user session...');
+        
+        // Try to refresh user profile to get new token
+        try {
+          const profileRes = await api.get('/api/v1/auth/user-profile');
+          if (profileRes.data.user) {
+            localStorage.setItem('user', JSON.stringify(profileRes.data.user));
+            if (setUser) setUser(profileRes.data.user);
+            
+            // Retry fetching users
+            if (retryCount === 0) {
+              setTimeout(() => fetchUsers(1), 500);
+              return;
+            }
+          }
+        } catch (refreshErr) {
+          console.log('Could not refresh session');
+        }
+        
+        setError('Session expired. Please logout and login again.');
       } else {
-        setError(response.data.message || 'No users found');
+        setError(response.data.message || 'Failed to fetch users');
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      setError('Failed to fetch users');
       
-      // ✅ Try to load from cache
       const cachedUsers = localStorage.getItem('usersList');
       if (cachedUsers) {
         setUsers(JSON.parse(cachedUsers));
-        setError('Using cached data (Backend not responding)');
+        setError('Using cached data. Please refresh.');
+      } else {
+        setError('Failed to fetch users. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -47,15 +74,16 @@ const Users = () => {
       try {
         const response = await api.delete(`/api/v1/auth/user/${userId}`);
         if (response.data.status) {
-          setUsers(users.filter(u => u._id !== userId));
-          // ✅ Update cache
           const updatedUsers = users.filter(u => u._id !== userId);
+          setUsers(updatedUsers);
           localStorage.setItem('usersList', JSON.stringify(updatedUsers));
           alert('User deleted successfully');
+        } else {
+          alert(response.data.message || 'Failed to delete user');
         }
       } catch (error) {
         console.log(error);
-        alert('Failed to delete user');
+        alert('Failed to delete user. Please try again.');
       }
     }
   };
@@ -81,6 +109,14 @@ const Users = () => {
       {error && (
         <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
           ⚠️ {error}
+          {error.includes('logout') && (
+            <button 
+              onClick={() => window.location.href = '/login'}
+              className="ml-3 underline text-yellow-800"
+            >
+              Go to Login
+            </button>
+          )}
         </div>
       )}
 
@@ -89,32 +125,18 @@ const Users = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  S.No
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Joined
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {users.map((userData, index) => (
                 <tr key={userData._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {index + 1}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -127,9 +149,7 @@ const Users = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {userData.email}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{userData.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       userData.role === 'admin' 
@@ -163,7 +183,9 @@ const Users = () => {
 
         {users.length === 0 && !loading && (
           <div className="text-center py-12">
+            <div className="text-5xl mb-3">👥</div>
             <p className="text-gray-500">No users found</p>
+            <p className="text-sm text-gray-400 mt-1">Try logging out and logging in again</p>
           </div>
         )}
       </div>
