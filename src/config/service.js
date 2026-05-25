@@ -30,18 +30,37 @@ import axios from 'axios'
 
 const url = import.meta.env.VITE_BACKEND_URL
 
+// Function to get token from cookie
+const getTokenFromCookie = () => {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'token') {
+            return value;
+        }
+    }
+    return null;
+}
+
 const api = axios.create({
     baseURL: url,
     headers: {
         "Content-Type": "application/json"
     },
-    withCredentials: false
+    withCredentials: true  // Important for cookies
 })
 
-// Request interceptor to add token from localStorage
+// Request interceptor to add token from cookie
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('authToken');
+        // Try to get token from cookie first
+        let token = getTokenFromCookie();
+        
+        // If not in cookie, try localStorage
+        if (!token) {
+            token = localStorage.getItem('authToken');
+        }
+        
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
             console.log('Token added to request:', config.url);
@@ -59,16 +78,16 @@ api.interceptors.response.use(
     (response) => {
         console.log('Response:', response.config.url, response.status);
         
-        // If login response has token, save it
-        if (response.data?.token) {
-            localStorage.setItem('authToken', response.data.token);
-            console.log('Token saved from response');
+        // Check if response set a cookie
+        const setCookieHeader = response.headers['set-cookie'];
+        if (setCookieHeader) {
+            console.log('Cookie set by server');
         }
         
         return response;
     },
     (error) => {
-        console.error('Response Error:', error.response?.config?.url, error.response?.status, error.response?.data?.message);
+        console.error('Response Error:', error.response?.config?.url, error.response?.status);
         return Promise.reject(error);
     }
 );

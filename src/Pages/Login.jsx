@@ -19,6 +19,18 @@ const Login = () => {
     setError('');
   };
 
+  // Function to get token from cookie
+  const getTokenFromCookie = () => {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'token') {
+        return value;
+      }
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -27,12 +39,20 @@ const Login = () => {
       console.log('Login response:', response.data);
       
       if (response.data.status) {
-        // Save token
-        if (response.data.token) {
-          localStorage.setItem('authToken', response.data.token);
-          console.log('Token saved:', response.data.token.substring(0, 50));
+        // Wait a bit for cookie to be set
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Try to get token from cookie
+        const tokenFromCookie = getTokenFromCookie();
+        if (tokenFromCookie) {
+          localStorage.setItem('authToken', tokenFromCookie);
+          console.log('Token saved from cookie:', tokenFromCookie.substring(0, 50));
         } else {
-          console.log('No token in response!');
+          console.log('No token found in cookie');
+          // If backend sent token in response body, use that
+          if (response.data.token) {
+            localStorage.setItem('authToken', response.data.token);
+          }
         }
         
         // Save user
@@ -40,10 +60,6 @@ const Login = () => {
         
         // Update state
         setUser(response.data.user);
-        
-        // Verify token was saved
-        const savedToken = localStorage.getItem('authToken');
-        console.log('Verified token saved:', savedToken ? 'Yes' : 'No');
         
         navigate('/');
       } else {
