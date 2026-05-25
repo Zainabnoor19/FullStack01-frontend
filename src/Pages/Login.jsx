@@ -27,22 +27,25 @@ const Login = () => {
       console.log('Login response:', response.data);
       
       if (response.data.status) {
-        // ✅ Save token to localStorage
+        // Save token
         if (response.data.token) {
           localStorage.setItem('authToken', response.data.token);
-          console.log('Token saved:', response.data.token);
+          console.log('Token saved:', response.data.token.substring(0, 50));
+        } else {
+          console.log('No token in response!');
         }
         
-        // Save user to localStorage
+        // Save user
         localStorage.setItem('user', JSON.stringify(response.data.user));
         
         // Update state
         setUser(response.data.user);
         
-        // Small delay to ensure token is saved
-        setTimeout(() => {
-          navigate('/');
-        }, 100);
+        // Verify token was saved
+        const savedToken = localStorage.getItem('authToken');
+        console.log('Verified token saved:', savedToken ? 'Yes' : 'No');
+        
+        navigate('/');
       } else {
         setError(response.data.message);
       }

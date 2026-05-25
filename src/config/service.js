@@ -1,3 +1,31 @@
+// import axios from 'axios'
+
+// const url = import.meta.env.VITE_BACKEND_URL
+
+// const api = axios.create({
+//     baseURL: url,
+//     headers: {
+//         "Content-Type": "application/json"
+//     },
+//     withCredentials: true
+// })
+
+// // ✅ Add this interceptor to handle errors globally
+// api.interceptors.response.use(
+//     (response) => {
+//         return response;
+//     },
+//     (error) => {
+//         // Agar 401 (unauthorized) aata hai to logout mat karo
+//         if (error.response?.status === 401) {
+//             console.log('Auth error, but keeping user data');
+//             // localStorage.removeItem('user');  // COMMENT THIS - Don't logout
+//         }
+//         return Promise.reject(error);
+//     }
+// );
+
+// export default api
 import axios from 'axios'
 
 const url = import.meta.env.VITE_BACKEND_URL
@@ -16,8 +44,10 @@ api.interceptors.request.use(
         const token = localStorage.getItem('authToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+            console.log('Token added to request:', config.url);
+        } else {
+            console.log('No token for:', config.url);
         }
-        console.log('Request URL:', config.baseURL + config.url);
         return config;
     },
     (error) => {
@@ -32,19 +62,13 @@ api.interceptors.response.use(
         // If login response has token, save it
         if (response.data?.token) {
             localStorage.setItem('authToken', response.data.token);
+            console.log('Token saved from response');
         }
         
         return response;
     },
     (error) => {
         console.error('Response Error:', error.response?.config?.url, error.response?.status, error.response?.data?.message);
-        
-        // DON'T automatically clear token on 401 - let the user decide
-        // Only clear if it's a login/register endpoint
-        if (error.response?.status === 401 && error.response?.config?.url?.includes('/auth/login')) {
-            console.log('Login failed');
-        }
-        
         return Promise.reject(error);
     }
 );

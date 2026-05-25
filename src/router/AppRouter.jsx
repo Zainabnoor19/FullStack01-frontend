@@ -9,6 +9,8 @@ import Analytics from '../Pages/Analytics'
 import MyProfile from '../Pages/MyProfile'
 import MyActivity from '../Pages/MyActivity'  // ✅ Add this
 import DashboardLayout from '../components/DashboardLayout'
+import TestToken from '../Pages/TestToken';
+
 
 const AppRouter = () => {
   return (
@@ -22,6 +24,7 @@ const AppRouter = () => {
         <Route path='/my-activity' element={<DashboardLayout><MyActivity/></DashboardLayout>}/>  {/* ✅ Add this */}
         <Route path='/login' element={<Login/>}/>
         <Route path='/register' element={<Signup/>}/>
+        <Route path='/test-token' element={<TestToken/>}/>
       </Routes>
     </BrowserRouter>
   )
