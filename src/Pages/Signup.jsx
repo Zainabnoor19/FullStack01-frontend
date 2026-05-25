@@ -21,14 +21,22 @@ const Signup = () => {
   console.log('Form Data Submitted:', formData);
   try {
     const response = await api.post('/api/v1/auth/user', formData);
+    console.log('Response:', response.data); // ✅ Check what's coming
+    
+    // ✅ Save token if present
+    if (response.data.token) {
+      localStorage.setItem('authToken', response.data.token);
+    }
+    
     if (response.data.user) {
-      navigate('/login');  // CHANGE YAHAN: '/' se '/login' karo
+      navigate('/login');
+    } else {
+      console.log('Signup failed:', response.data.message);
     }
   } catch (error) {
-    console.log(error);
+    console.log('Error:', error.response?.data || error.message);
   }
 };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
