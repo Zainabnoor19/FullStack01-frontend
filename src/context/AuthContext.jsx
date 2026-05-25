@@ -15,9 +15,10 @@ export const AuthContext = ({children}) => {
       const cachedUser = getUser();
       if (cachedUser && cachedUser._id) {
         setUser(cachedUser);
+        setLoader(false);
       }
       
-      // Then fetch fresh data from backend
+      // Then fetch fresh data from backend (cookies will be sent automatically)
       const res = await fetchUser();
       console.log('Fetch user response:', res);
       
@@ -27,6 +28,10 @@ export const AuthContext = ({children}) => {
         setUser(res);
       } else if (cachedUser && cachedUser._id) {
         console.log('Using cached user data');
+      } else {
+        // No user found, clear any stale data
+        localStorage.removeItem('user');
+        setUser(null);
       }
     } catch (error) {
       console.log('error in fetching user--->', error);
@@ -34,6 +39,8 @@ export const AuthContext = ({children}) => {
       const cachedUser = getUser();
       if (cachedUser && cachedUser._id) {
         setUser(cachedUser);
+      } else {
+        setUser(null);
       }
     } finally {
       setLoader(false)

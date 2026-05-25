@@ -35,31 +35,14 @@ const api = axios.create({
     headers: {
         "Content-Type": "application/json"
     },
-    withCredentials: true
+    withCredentials: true  // This sends cookies automatically
 })
 
-// ✅ Request interceptor to add token from localStorage
+// ✅ Add request interceptor for logging only
 api.interceptors.request.use(
     (config) => {
-        // Try to get token from user object in localStorage
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-            try {
-                const user = JSON.parse(userStr);
-                // If your backend sends token in response, add it to headers
-                if (user.token) {
-                    config.headers.Authorization = `Bearer ${user.token}`;
-                }
-                // Also try to get from separate token storage
-                const token = localStorage.getItem('authToken');
-                if (token && !user.token) {
-                    config.headers.Authorization = `Bearer ${token}`;
-                }
-            } catch (e) {
-                console.log('Error parsing user data');
-            }
-        }
         console.log('Request URL:', config.baseURL + config.url);
+        console.log('Request Method:', config.method);
         return config;
     },
     (error) => {
@@ -69,20 +52,14 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
     (response) => {
-        console.log('Response success:', response.config.url, response.data?.status);
-        
-        // ✅ If login response has token, save it
-        if (response.data?.token) {
-            localStorage.setItem('authToken', response.data.token);
-        }
-        
+        console.log('Response:', response.config.url, response.status, response.data?.status);
         return response;
     },
     (error) => {
-        console.error('Response error:', error.response?.config?.url, error.response?.status, error.response?.data?.message);
+        console.error('Response Error:', error.response?.config?.url, error.response?.status, error.response?.data?.message);
         
         if (error.response?.status === 401) {
-            console.log('Auth error on protected route');
+            console.log('Auth error - token may be expired');
         }
         return Promise.reject(error);
     }

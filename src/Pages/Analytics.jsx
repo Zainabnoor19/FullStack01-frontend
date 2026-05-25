@@ -23,59 +23,46 @@ const Analytics = () => {
     fetchAnalytics();
   }, [user]);
 
-  const fetchAnalytics = async (retryCount = 0) => {
+  const fetchAnalytics = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // ✅ First check if we have cached users
+      // Load from cache first
       const cachedUsers = localStorage.getItem('usersList');
-      if (cachedUsers && retryCount === 0) {
+      if (cachedUsers) {
         const users = JSON.parse(cachedUsers);
         updateStats(users);
       }
       
-      // ✅ Get fresh data from backend with correct endpoint
       const response = await api.get('/api/v1/auth/getuser');
       console.log('Analytics API response:', response.data);
       
       if (response.data.status && response.data.data) {
         const users = response.data.data;
-        // Cache users
         localStorage.setItem('usersList', JSON.stringify(users));
         updateStats(users);
         setError(null);
       } else if (response.data.message === 'jwt malformed') {
-        // If token is malformed, try to refresh user data first
-        console.log('JWT malformed, refreshing user data...');
-        await refreshUserData();
-        
-        // Retry once after refreshing user
-        if (retryCount === 0) {
-          setTimeout(() => fetchAnalytics(1), 500);
-        } else {
-          setError('Authentication issue. Please logout and login again.');
-        }
+        setError('Session expired. Please logout and login again.');
       } else {
         setError(response.data.message || 'No users data available');
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
       
-      // Use cached data if available
       const cachedUsers = localStorage.getItem('usersList');
       if (cachedUsers) {
         const users = JSON.parse(cachedUsers);
         updateStats(users);
-        setError('Using cached data (Unable to fetch fresh data)');
+        setError('Using cached data');
       } else {
-        setError('Failed to load analytics. Please try again.');
+        setError('Failed to load analytics. Please login again.');
       }
     } finally {
       setLoading(false);
     }
   };
-
   const refreshUserData = async () => {
     try {
       const response = await api.get('/api/v1/auth/user-profile');
