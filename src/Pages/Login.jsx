@@ -24,11 +24,20 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await api.post('/api/v1/auth/login', formData);
+      console.log('Login response:', response.data);
+      
       if (response.data.status) {
-        // Save to localStorage
+        // ✅ Save token if present
+        if (response.data.token) {
+          localStorage.setItem('authToken', response.data.token);
+        }
+        
+        // Save user to localStorage
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        
         // Update state
         setUser(response.data.user);
+        
         navigate('/');
       } else {
         setError(response.data.message);

@@ -35,21 +35,26 @@ const api = axios.create({
     headers: {
         "Content-Type": "application/json"
     },
-    withCredentials: true  // This sends cookies automatically
+    withCredentials: true
 })
 
-// ✅ Add request interceptor to ensure token is sent
+// ✅ Request interceptor to add token from localStorage
 api.interceptors.request.use(
     (config) => {
-        // Get token from localStorage if needed
-        const user = localStorage.getItem('user');
-        if (user) {
+        // Try to get token from user object in localStorage
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
             try {
-                const userData = JSON.parse(user);
-                // If your backend expects token in header, uncomment below
-                // if (userData.token) {
-                //     config.headers.Authorization = `Bearer ${userData.token}`;
-                // }
+                const user = JSON.parse(userStr);
+                // If your backend sends token in response, add it to headers
+                if (user.token) {
+                    config.headers.Authorization = `Bearer ${user.token}`;
+                }
+                // Also try to get from separate token storage
+                const token = localStorage.getItem('authToken');
+                if (token && !user.token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
             } catch (e) {
                 console.log('Error parsing user data');
             }
@@ -62,19 +67,22 @@ api.interceptors.request.use(
     }
 );
 
-// ✅ Response interceptor
 api.interceptors.response.use(
     (response) => {
         console.log('Response success:', response.config.url, response.data?.status);
+        
+        // ✅ If login response has token, save it
+        if (response.data?.token) {
+            localStorage.setItem('authToken', response.data.token);
+        }
+        
         return response;
     },
     (error) => {
         console.error('Response error:', error.response?.config?.url, error.response?.status, error.response?.data?.message);
         
-        // Only handle 401 for non-auth endpoints
-        if (error.response?.status === 401 && !error.response?.config?.url?.includes('/auth/')) {
+        if (error.response?.status === 401) {
             console.log('Auth error on protected route');
-            // Don't auto logout - just log the error
         }
         return Promise.reject(error);
     }
