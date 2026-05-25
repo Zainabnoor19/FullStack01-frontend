@@ -26,7 +26,18 @@ const Users = () => {
       // Load from cache first
       const cachedUsers = localStorage.getItem('usersList');
       if (cachedUsers) {
-        setUsers(JSON.parse(cachedUsers));
+        const parsedUsers = JSON.parse(cachedUsers);
+        if (parsedUsers.length > 0) {
+          setUsers(parsedUsers);
+        }
+      }
+      
+      // Try to fetch fresh data
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setError('Please login again');
+        setLoading(false);
+        return;
       }
       
       const response = await api.get('/api/v1/auth/getuser');
@@ -37,9 +48,13 @@ const Users = () => {
         localStorage.setItem('usersList', JSON.stringify(response.data.data));
         setError('');
       } else if (response.data.message === 'jwt malformed') {
-        // Cookie might be missing or expired
-        console.log('JWT malformed - cookie issue');
-        setError('Session expired. Please logout and login again.');
+        // Don't logout - just show error and use cached data
+        console.log('JWT malformed, using cached data');
+        if (cachedUsers) {
+          setError('Using cached data. Please refresh later.');
+        } else {
+          setError('Session issue. Please logout and login again.');
+        }
       } else {
         setError(response.data.message || 'Failed to fetch users');
       }
@@ -49,9 +64,9 @@ const Users = () => {
       const cachedUsers = localStorage.getItem('usersList');
       if (cachedUsers && JSON.parse(cachedUsers).length > 0) {
         setUsers(JSON.parse(cachedUsers));
-        setError('Using cached data. Please refresh.');
+        setError('Using cached data. Please refresh later.');
       } else {
-        setError('Failed to fetch users. Please login again.');
+        setError('Failed to fetch users. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -77,7 +92,7 @@ const Users = () => {
     }
   };
 
-  if (loading) {
+  if (loading && users.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -98,14 +113,6 @@ const Users = () => {
       {error && (
         <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
           ⚠️ {error}
-          {error.includes('logout') && (
-            <button 
-              onClick={() => window.location.href = '/login'}
-              className="ml-3 underline text-yellow-800"
-            >
-              Go to Login
-            </button>
-          )}
         </div>
       )}
 
@@ -174,7 +181,6 @@ const Users = () => {
           <div className="text-center py-12">
             <div className="text-5xl mb-3">👥</div>
             <p className="text-gray-500">No users found</p>
-            <p className="text-sm text-gray-400 mt-1">Try logging out and logging in again</p>
           </div>
         )}
       </div>

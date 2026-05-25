@@ -11,43 +11,35 @@ export const AuthContext = ({children}) => {
  
   const userLoad = async ()=>{
     try {
-      // Check if token exists
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        console.log('No token found, skipping user fetch');
-        setLoader(false);
-        return;
-      }
-      
-      // First check localStorage for cached user
+      // First check localStorage for cached user (ALWAYS show this first)
       const cachedUser = getUser();
       if (cachedUser && cachedUser._id) {
         setUser(cachedUser);
+        console.log('Using cached user on refresh:', cachedUser.name);
       }
       
-      // Then fetch fresh data from backend
-      const res = await fetchUser();
-      console.log('Fetch user response:', res);
-      
-      if (res && res._id) {
-        // Save user from backend response
-        saveUser(res);
-        setUser(res);
-      } else if (cachedUser && cachedUser._id) {
-        console.log('Using cached user data');
-      } else {
-        // No valid user, clear token
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        setUser(null);
+      // Try to fetch fresh data from backend (don't wait for this)
+      try {
+        const res = await fetchUser();
+        console.log('Fetch user response:', res);
+        
+        if (res && res._id) {
+          // Save user from backend response
+          saveUser(res);
+          setUser(res);
+          console.log('Updated user from backend:', res.name);
+        }
+      } catch (backendError) {
+        // DON'T logout on backend error - just keep cached user
+        console.log('Backend fetch failed, keeping cached user');
       }
+      
     } catch (error) {
-      console.log('error in fetching user--->', error);
+      console.log('error in userLoad--->', error);
+      // Keep cached user if exists
       const cachedUser = getUser();
       if (cachedUser && cachedUser._id) {
         setUser(cachedUser);
-      } else {
-        setUser(null);
       }
     } finally {
       setLoader(false)

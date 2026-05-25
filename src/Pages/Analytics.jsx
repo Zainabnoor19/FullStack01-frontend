@@ -32,7 +32,16 @@ const Analytics = () => {
       const cachedUsers = localStorage.getItem('usersList');
       if (cachedUsers) {
         const users = JSON.parse(cachedUsers);
-        updateStats(users);
+        if (users.length > 0) {
+          updateStats(users);
+        }
+      }
+      
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setError('Please login to see analytics');
+        setLoading(false);
+        return;
       }
       
       const response = await api.get('/api/v1/auth/getuser');
@@ -44,7 +53,12 @@ const Analytics = () => {
         updateStats(users);
         setError(null);
       } else if (response.data.message === 'jwt malformed') {
-        setError('Session expired. Please logout and login again.');
+        // Don't logout - just use cached data
+        if (cachedUsers) {
+          setError('Using cached data. Please refresh later.');
+        } else {
+          setError('Session issue. Please logout and login again.');
+        }
       } else {
         setError(response.data.message || 'No users data available');
       }
@@ -57,7 +71,7 @@ const Analytics = () => {
         updateStats(users);
         setError('Using cached data');
       } else {
-        setError('Failed to load analytics. Please login again.');
+        setError('Failed to load analytics. Please try again.');
       }
     } finally {
       setLoading(false);
