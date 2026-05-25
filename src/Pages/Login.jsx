@@ -32,47 +32,27 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const response = await api.post('/api/v1/auth/login', formData);
-      console.log('Login response:', response.data);
-      
-      if (response.data.status) {
-        // Wait a bit for cookie to be set
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Try to get token from cookie
-        const tokenFromCookie = getTokenFromCookie();
-        if (tokenFromCookie) {
-          localStorage.setItem('authToken', tokenFromCookie);
-          console.log('Token saved from cookie:', tokenFromCookie.substring(0, 50));
-        } else {
-          console.log('No token found in cookie');
-          // If backend sent token in response body, use that
-          if (response.data.token) {
-            localStorage.setItem('authToken', response.data.token);
-          }
-        }
-        
-        // Save user
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        
-        // Update state
-        setUser(response.data.user);
-        
-        navigate('/');
-      } else {
-        setError(response.data.message);
-      }
-    } catch (error) {
-      setError(error.response?.data?.message || 'Login failed');
-      console.log(error);
-    } finally {
-      setLoading(false);
+  e.preventDefault();
+  setLoading(true);
+  try {
+    const response = await api.post('/api/v1/auth/login', formData);
+    console.log('Login response:', response.data);
+    
+    if (response.data.status && response.data.user) {
+      // Token is automatically saved by interceptor
+      // Save user
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setUser(response.data.user);
+      navigate('/');
+    } else {
+      setError(response.data.message);
     }
-  };
-
+  } catch (error) {
+    setError(error.response?.data?.message || 'Login failed');
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">

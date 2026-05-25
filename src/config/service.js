@@ -30,42 +30,20 @@ import axios from 'axios'
 
 const url = import.meta.env.VITE_BACKEND_URL
 
-// Function to get token from cookie
-const getTokenFromCookie = () => {
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'token') {
-            return value;
-        }
-    }
-    return null;
-}
-
 const api = axios.create({
     baseURL: url,
     headers: {
         "Content-Type": "application/json"
     },
-    withCredentials: true  // Important for cookies
+    withCredentials: true
 })
 
-// Request interceptor to add token from cookie
+// Request interceptor
 api.interceptors.request.use(
     (config) => {
-        // Try to get token from cookie first
-        let token = getTokenFromCookie();
-        
-        // If not in cookie, try localStorage
-        if (!token) {
-            token = localStorage.getItem('authToken');
-        }
-        
+        const token = localStorage.getItem('authToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-            console.log('Token added to request:', config.url);
-        } else {
-            console.log('No token for:', config.url);
         }
         return config;
     },
@@ -74,20 +52,17 @@ api.interceptors.request.use(
     }
 );
 
+// Response interceptor
 api.interceptors.response.use(
     (response) => {
-        console.log('Response:', response.config.url, response.status);
-        
-        // Check if response set a cookie
-        const setCookieHeader = response.headers['set-cookie'];
-        if (setCookieHeader) {
-            console.log('Cookie set by server');
+        // Save token if in response
+        if (response.data?.token) {
+            localStorage.setItem('authToken', response.data.token);
         }
-        
         return response;
     },
     (error) => {
-        console.error('Response Error:', error.response?.config?.url, error.response?.status);
+        console.error('API Error:', error.response?.data?.message);
         return Promise.reject(error);
     }
 );
