@@ -1,14 +1,14 @@
 import api from '../config/service';
 
 const logoutUser = async (navigate, setUser) => {
-
   try {
-
     // ✅ Backend logout
     await api.get('/api/v1/auth/logout');
 
-    // ✅ Remove localStorage
+    // ✅ Remove localStorage items
     localStorage.removeItem('user');
+    localStorage.removeItem('authToken');  // Also remove token
+    localStorage.removeItem('usersList');
 
     // ✅ Clear state
     if (setUser) {
@@ -25,11 +25,12 @@ const logoutUser = async (navigate, setUser) => {
     };
 
   } catch (error) {
-
     console.error('Logout error:', error);
 
-    // ✅ Even if API fails
+    // ✅ Even if API fails, clear local data
     localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('usersList');
 
     if (setUser) {
       setUser(null);

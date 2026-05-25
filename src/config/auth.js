@@ -1,27 +1,13 @@
-// import axios from "axios";
-// import api from './service'
-
-
-   
-// export const fetchUser=async ()=>{
-//     const url = import.meta.env.VITE_BACKEND_URL
-// console.log(url);
-// try {
-//     const response = await api.get(`/api/v1/auth/user-profile`)
-//     return response.data.user
-// } catch (error) {
-//     console.log(error);
-    
-// }
-    
-// }
-import axios from "axios";
 import api from './service'
 
 export const fetchUser = async ()=>{
-    const url = import.meta.env.VITE_BACKEND_URL
-    console.log(url);
     try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            console.log('No token found');
+            return null;
+        }
+        
         const response = await api.get(`/api/v1/auth/user-profile`)
         console.log('User profile response:', response.data);
         

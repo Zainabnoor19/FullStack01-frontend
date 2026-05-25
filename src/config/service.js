@@ -35,12 +35,20 @@ const api = axios.create({
     headers: {
         "Content-Type": "application/json"
     },
-    withCredentials: true  // This sends cookies automatically
+    withCredentials: false  // Change to false - we'll use headers instead
 })
 
-// ✅ Add request interceptor for logging only
+// ✅ Add request interceptor to add token from localStorage
 api.interceptors.request.use(
     (config) => {
+        // Get token from localStorage
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+            console.log('Token added to request headers');
+        } else {
+            console.log('No token found for request:', config.url);
+        }
         console.log('Request URL:', config.baseURL + config.url);
         console.log('Request Method:', config.method);
         return config;
@@ -53,6 +61,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => {
         console.log('Response:', response.config.url, response.status, response.data?.status);
+        
+        // If login response has token, save it
+        if (response.data?.token) {
+            localStorage.setItem('authToken', response.data.token);
+            console.log('Token saved from response');
+        }
+        
         return response;
     },
     (error) => {
@@ -60,6 +75,9 @@ api.interceptors.response.use(
         
         if (error.response?.status === 401) {
             console.log('Auth error - token may be expired');
+            // Clear token on 401
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
         }
         return Promise.reject(error);
     }

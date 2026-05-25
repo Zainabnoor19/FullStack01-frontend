@@ -11,14 +11,21 @@ export const AuthContext = ({children}) => {
  
   const userLoad = async ()=>{
     try {
+      // Check if token exists
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.log('No token found, skipping user fetch');
+        setLoader(false);
+        return;
+      }
+      
       // First check localStorage for cached user
       const cachedUser = getUser();
       if (cachedUser && cachedUser._id) {
         setUser(cachedUser);
-        setLoader(false);
       }
       
-      // Then fetch fresh data from backend (cookies will be sent automatically)
+      // Then fetch fresh data from backend
       const res = await fetchUser();
       console.log('Fetch user response:', res);
       
@@ -29,13 +36,13 @@ export const AuthContext = ({children}) => {
       } else if (cachedUser && cachedUser._id) {
         console.log('Using cached user data');
       } else {
-        // No user found, clear any stale data
+        // No valid user, clear token
+        localStorage.removeItem('authToken');
         localStorage.removeItem('user');
         setUser(null);
       }
     } catch (error) {
       console.log('error in fetching user--->', error);
-      // Keep cached user if backend fails
       const cachedUser = getUser();
       if (cachedUser && cachedUser._id) {
         setUser(cachedUser);

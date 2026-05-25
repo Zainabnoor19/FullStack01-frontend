@@ -27,9 +27,10 @@ const Login = () => {
       console.log('Login response:', response.data);
       
       if (response.data.status) {
-        // ✅ Save token if present
+        // ✅ Save token to localStorage
         if (response.data.token) {
           localStorage.setItem('authToken', response.data.token);
+          console.log('Token saved:', response.data.token);
         }
         
         // Save user to localStorage
@@ -38,7 +39,10 @@ const Login = () => {
         // Update state
         setUser(response.data.user);
         
-        navigate('/');
+        // Small delay to ensure token is saved
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
       } else {
         setError(response.data.message);
       }
